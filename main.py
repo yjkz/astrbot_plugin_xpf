@@ -228,40 +228,25 @@ class XpfPlugin(Star):
         self.default_dc = config.get("default_datacenter", "")
         self.default_per_page = min(config.get("default_per_page", 5), 100)
         self.as_image = config.get("result_as_image", False)
-        self.session: aiohttp.ClientSession | None = None
-
-    async def _get_session(self) -> aiohttp.ClientSession:
-        if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession(
-                headers={"User-Agent": USER_AGENT},
-                timeout=aiohttp.ClientTimeout(total=15),
-            )
-        return self.session
 
     async def _fetch_listings(self, params: dict) -> dict:
-        session = await self._get_session()
         clean = {k: v for k, v in params.items() if v is not None and v != ""}
-        async with session.get(f"{self.api_base}/listings", params=clean) as resp:
-            if resp.status != 200:
-                text = await resp.text()
-                raise RuntimeError(f"API 返回 {resp.status}: {text[:200]}")
-            return await resp.json()
+        async with aiohttp.ClientSession(headers={"User-Agent": USER_AGENT}) as session:
+            async with session.get(f"{self.api_base}/listings", params=clean, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                if resp.status != 200:
+                    text = await resp.text()
+                    raise RuntimeError(f"API 返回 {resp.status}: {text[:200]}")
+                return await resp.json()
 
     async def _fetch_detail(self, listing_id: int) -> dict:
-        session = await self._get_session()
-        async with session.get(f"{self.api_base}/listing/{listing_id}") as resp:
-            if resp.status == 404:
-                raise ValueError("未找到该招募信息（可能已过期或被移除）")
-            if resp.status != 200:
-                text = await resp.text()
-                raise RuntimeError(f"API 返回 {resp.status}: {text[:200]}")
-            return await resp.json()
-
-    def _render(self, text: str):
-        if self.as_image:
-            yield self.image_result(self.text_to_image(text))
-        else:
-            yield self.plain_result(text)
+        async with aiohttp.ClientSession(headers={"User-Agent": USER_AGENT}) as session:
+            async with session.get(f"{self.api_base}/listing/{listing_id}", timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                if resp.status == 404:
+                    raise ValueError("未找到该招募信息（可能已过期或被移除）")
+                if resp.status != 200:
+                    text = await resp.text()
+                    raise RuntimeError(f"API 返回 {resp.status}: {text[:200]}")
+                return await resp.json()
 
     # ── 指令组 ──
 
@@ -320,8 +305,10 @@ class XpfPlugin(Star):
             )
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
-            for r in self._render(header + body + footer):
-                yield r
+            if self.as_image:
+                yield event.image_result(await self.text_to_image(header + body + footer))
+            else:
+                yield event.plain_result(header + body + footer)
 
         except Exception as e:
             logger.error(f"pf list error: {e}")
@@ -352,8 +339,10 @@ class XpfPlugin(Star):
             )
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
-            for r in self._render(header + body + footer):
-                yield r
+            if self.as_image:
+                yield event.image_result(await self.text_to_image(header + body + footer))
+            else:
+                yield event.plain_result(header + body + footer)
 
         except Exception as e:
             logger.error(f"pf search error: {e}")
@@ -386,8 +375,10 @@ class XpfPlugin(Star):
             )
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
-            for r in self._render(header + body + footer):
-                yield r
+            if self.as_image:
+                yield event.image_result(await self.text_to_image(header + body + footer))
+            else:
+                yield event.plain_result(header + body + footer)
 
         except Exception as e:
             logger.error(f"pf dc error: {e}")
@@ -418,8 +409,10 @@ class XpfPlugin(Star):
             )
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
-            for r in self._render(header + body + footer):
-                yield r
+            if self.as_image:
+                yield event.image_result(await self.text_to_image(header + body + footer))
+            else:
+                yield event.plain_result(header + body + footer)
 
         except Exception as e:
             logger.error(f"pf duty error: {e}")
@@ -458,8 +451,10 @@ class XpfPlugin(Star):
             )
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
-            for r in self._render(header + body + footer):
-                yield r
+            if self.as_image:
+                yield event.image_result(await self.text_to_image(header + body + footer))
+            else:
+                yield event.plain_result(header + body + footer)
 
         except Exception as e:
             logger.error(f"pf cat error: {e}")
@@ -486,5 +481,4 @@ class XpfPlugin(Star):
             yield event.plain_result(f"查询失败: {e}")
 
     async def terminate(self):
-        if self.session and not self.session.closed:
-            await self.session.close()
+        pass
