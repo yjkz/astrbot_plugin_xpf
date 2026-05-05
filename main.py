@@ -1,6 +1,6 @@
 import aiohttp
 from astrbot.api.event import filter, AstrMessageEvent
-from astrbot.api.star import Context, Star, register
+from astrbot.api.star import Context, Star
 from astrbot.api import logger, AstrBotConfig
 
 PLUGIN_NAME = "astrbot_plugin_xpf"
@@ -220,7 +220,6 @@ def format_listing_detail_image(listing: dict) -> str:
 '''
 
 
-@register(PLUGIN_NAME, "夜艺", "FFXIV 集招募信息查询", "v1.0.0")
 class XpfPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
