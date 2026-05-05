@@ -22,6 +22,41 @@ CATEGORY_NAMES = {
     "Eureka": "优雷卡",
     "VCDungeonFinder": "异闻迷宫",
     "ChaoticAllianceRaid": "混沌同盟任务",
+    "DutyRoulette": "随机任务",
+}
+
+# 副本类型中文映射
+DUTY_TYPE_NAMES = {
+    "Normal": "普通",
+    "Roulette": "随机",
+    "Raid": "副本",
+    "Trial": "讨伐",
+    "Dungeon": "迷宫",
+    "PvP": "PvP",
+    "Other": "其他",
+}
+
+# 目标中文映射
+OBJECTIVE_NAMES = {
+    "DUTY_COMPLETION": "通关副本",
+    "PRACTICE": "练习",
+    "LOOT": "拾取",
+    "NONE": "无",
+}
+
+# 条件中文映射
+CONDITIONS_NAMES = {
+    "NONE": "无",
+    "DUTY_COMPLETE": "已完成",
+    "MIN_ILVL": "最低装等",
+}
+
+# 分配方式中文映射
+LOOT_NAMES = {
+    "NONE": "无",
+    "FREEFORALL": "自由拾取",
+    "NEED_GREED": "需求优先",
+    "LOOTMASTER": "分配者拾取",
 }
 
 # 大区到服务器的映射（国服）
@@ -32,8 +67,13 @@ DATACENTER_WORLDS = {
     "陆行鸟": ["红玉海", "神意之地", "拉诺西亚", "幻影群岛", "萌芽池"],
 }
 
-# FFXIV Lodestone 角色图标 Unicode
-ROLE_ICONS = {
+# 角色图标（文本模式用 Emoji，图片模式用 FFXIV 字体）
+ROLE_ICONS_TEXT = {
+    "Tank": "🛡",
+    "Healer": "💚",
+    "DPS": "⚔",
+}
+ROLE_ICONS_FFXIV = {
     "Tank": " ",
     "Healer": " ",
     "DPS": " ",
@@ -108,8 +148,9 @@ def format_time_left(seconds: float) -> str:
     return f"{minutes}分钟"
 
 
-def _role_icon(role: str) -> str:
-    return ROLE_ICONS.get(role, "?")
+def _role_icon(role: str, ffxiv: bool = False) -> str:
+    icons = ROLE_ICONS_FFXIV if ffxiv else ROLE_ICONS_TEXT
+    return icons.get(role, "?")
 
 
 def _progress_bar(filled: int, total: int, width: int = 8) -> str:
@@ -122,12 +163,12 @@ def format_slot(slot: dict) -> str:
         job = slot.get("job", "?")
         role = slot.get("role", "?")
         icon = _role_icon(role)
-        return f"{icon} {job}"
+        return f"{icon}{job}"
     else:
         role = slot.get("role")
         if role:
-            return f"{_role_icon(role)} ···"
-        return "? ···"
+            return f"{_role_icon(role)}待补"
+        return "？待补"
 
 
 def format_listing_summary(listing: dict, index: int) -> str:
@@ -175,13 +216,17 @@ def format_listing_detail(listing: dict) -> str:
     time_left = listing.get("time_left", 0)
     desc = listing.get("description", "").strip()
     listing_id = listing.get("id", 0)
-    cross = "⇔ 是" if listing.get("is_cross_world") else "否"
+    cross = "⇔" if listing.get("is_cross_world") else ""
     welcome = "✔" if listing.get("beginners_welcome") else "✘"
     min_il = listing.get("min_item_level", 0)
-    duty_type = listing.get("duty_type", "")
-    objective = listing.get("objective", "NONE")
-    conditions = listing.get("conditions", "NONE")
-    loot = listing.get("loot_rules", "NONE")
+    duty_type_raw = listing.get("duty_type", "")
+    duty_type = DUTY_TYPE_NAMES.get(duty_type_raw, duty_type_raw)
+    objective_raw = listing.get("objective", "NONE")
+    objective = OBJECTIVE_NAMES.get(objective_raw, objective_raw)
+    conditions_raw = listing.get("conditions", "NONE")
+    conditions = CONDITIONS_NAMES.get(conditions_raw, conditions_raw)
+    loot_raw = listing.get("loot_rules", "NONE")
+    loot = LOOT_NAMES.get(loot_raw, loot_raw)
 
     bar = _progress_bar(filled, available)
 
@@ -193,17 +238,17 @@ def format_listing_detail(listing: dict) -> str:
         f"  {duty}",
         f"",
         f"  {dc} / {world} ({home_world})",
-        f"  跨服: {cross} │ 新人: {welcome}",
+        f"  跨服: {cross or '否'} │ 新人: {welcome}",
         f"  装等: {min_il if min_il > 0 else '无要求'}",
         f"",
         f"  {bar} {filled}/{available} │ {format_time_left(time_left)}",
     ]
 
-    if objective and objective != "NONE":
+    if objective and objective_raw != "NONE":
         lines.append(f"  目标: {objective}")
-    if conditions and conditions != "NONE":
+    if conditions and conditions_raw != "NONE":
         lines.append(f"  条件: {conditions}")
-    if loot and loot != "NONE":
+    if loot and loot_raw != "NONE":
         lines.append(f"  分配: {loot}")
 
     slots = listing.get("slots", [])
@@ -241,7 +286,8 @@ def format_listing_detail_image(listing: dict) -> str:
     cross = "⇔" if listing.get("is_cross_world") else ""
     welcome = "✔" if listing.get("beginners_welcome") else "✘"
     min_il = listing.get("min_item_level", 0)
-    duty_type = listing.get("duty_type", "")
+    duty_type_raw = listing.get("duty_type", "")
+    duty_type = DUTY_TYPE_NAMES.get(duty_type_raw, duty_type_raw)
     listing_id = listing.get("id", 0)
     time_str = format_time_left(time_left)
 
@@ -254,7 +300,7 @@ def format_listing_detail_image(listing: dict) -> str:
         first_job = job_str.split()[0] if job_str else ""
 
         role_color = ROLE_COLORS.get(role, "#888")
-        role_icon = ROLE_ICONS.get(role, "?")
+        role_icon = ROLE_ICONS_FFXIV.get(role, "?")
         role_cn = ROLE_CN.get(role, "任意")
 
         if filled_slot and first_job:
