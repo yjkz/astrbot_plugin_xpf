@@ -32,6 +32,71 @@ DATACENTER_WORLDS = {
     "陆行鸟": ["红玉海", "神意之地", "拉诺西亚", "幻影群岛", "萌芽池"],
 }
 
+# FFXIV Lodestone 角色图标 Unicode
+ROLE_ICONS = {
+    "Tank": " ",
+    "Healer": " ",
+    "DPS": " ",
+}
+
+# 职能颜色
+ROLE_COLORS = {
+    "Tank": "#3d85c6",
+    "Healer": "#6aa84f",
+    "DPS": "#cc0000",
+}
+
+# 职能中文
+ROLE_CN = {
+    "Tank": "坦克",
+    "Healer": "治疗",
+    "DPS": "DPS",
+}
+
+# 职业图标 CDN
+SDO_ICON_BASE = "https://img.nga.178.com/attachments/mon_202503"
+JOB_ICON_URLS = {
+    # 坦克
+    "PLD": f"{SDO_ICON_BASE}/zjob0.png",
+    "WAR": f"{SDO_ICON_BASE}/zjob1.png",
+    "DRK": f"{SDO_ICON_BASE}/zjob2.png",
+    "GNB": f"{SDO_ICON_BASE}/zjob3.png",
+    # 治疗
+    "WHM": f"{SDO_ICON_BASE}/zjob4.png",
+    "AST": f"{SDO_ICON_BASE}/zjob5.png",
+    "SCH": f"{SDO_ICON_BASE}/zjob6.png",
+    "SGE": f"{SDO_ICON_BASE}/zjob7.png",
+    # 近战 DPS
+    "MNK": f"{SDO_ICON_BASE}/zjob8.png",
+    "DRG": f"{SDO_ICON_BASE}/zjob9.png",
+    "NIN": f"{SDO_ICON_BASE}/zjob10.png",
+    "SAM": f"{SDO_ICON_BASE}/zjob11.png",
+    "RPR": f"{SDO_ICON_BASE}/zjob12.png",
+    "VPR": f"{SDO_ICON_BASE}/DoW/VPR.png",
+    # 远程物理 DPS
+    "BRD": f"{SDO_ICON_BASE}/zjob13.png",
+    "MCH": f"{SDO_ICON_BASE}/zjob14.png",
+    "DNC": f"{SDO_ICON_BASE}/zjob15.png",
+    # 魔法 DPS
+    "BLM": f"{SDO_ICON_BASE}/zjob16.png",
+    "SMN": f"{SDO_ICON_BASE}/zjob17.png",
+    "RDM": f"{SDO_ICON_BASE}/zjob18.png",
+    "BLU": f"{SDO_ICON_BASE}/zjob19.png",
+    "PCT": f"{SDO_ICON_BASE}/DoM/PCT.png",
+}
+
+# 职业到职能的映射
+JOB_ROLE = {
+    "PLD": "Tank", "WAR": "Tank", "DRK": "Tank", "GNB": "Tank",
+    "WHM": "Healer", "SCH": "Healer", "AST": "Healer", "SGE": "Healer",
+    "MNK": "DPS", "DRG": "DPS", "NIN": "DPS", "SAM": "DPS", "RPR": "DPS", "VPR": "DPS",
+    "BRD": "DPS", "MCH": "DPS", "DNC": "DPS",
+    "BLM": "DPS", "SMN": "DPS", "RDM": "DPS", "BLU": "DPS", "PCT": "DPS",
+}
+
+# FFXIV 字体 URL
+FFXIV_FONT_URL = "https://img.finalfantasyxiv.com/lds/pc/global/fonts/FFXIV_Lodestone_SSF.woff"
+
 
 def format_time_left(seconds: float) -> str:
     if seconds <= 0:
@@ -43,16 +108,26 @@ def format_time_left(seconds: float) -> str:
     return f"{minutes}分钟"
 
 
+def _role_icon(role: str) -> str:
+    return ROLE_ICONS.get(role, "?")
+
+
+def _progress_bar(filled: int, total: int, width: int = 8) -> str:
+    filled_blocks = min(filled, width)
+    return "█" * filled_blocks + "░" * (width - filled_blocks)
+
+
 def format_slot(slot: dict) -> str:
     if slot.get("filled"):
         job = slot.get("job", "?")
         role = slot.get("role", "?")
-        return f"[{role}] {job}"
+        icon = _role_icon(role)
+        return f"{icon} {job}"
     else:
         role = slot.get("role")
         if role:
-            return f"[{role}] 待补"
-        return "[任意] 待补"
+            return f"{_role_icon(role)} ···"
+        return "? ···"
 
 
 def format_listing_summary(listing: dict, index: int) -> str:
@@ -67,22 +142,23 @@ def format_listing_summary(listing: dict, index: int) -> str:
     time_left = listing.get("time_left", 0)
     desc = listing.get("description", "").strip()
     listing_id = listing.get("id", 0)
-    cross = "跨服" if listing.get("is_cross_world") else ""
+    cross = "⇔跨服" if listing.get("is_cross_world") else ""
 
-    tags = " ".join(filter(None, [cross]))
+    bar = _progress_bar(filled, available)
+    time_str = format_time_left(time_left)
 
     lines = [
-        f"#{index} | {name} ({world})",
-        f"  {category_cn} - {duty}",
-        f"  {filled}/{available}人 | 剩余{format_time_left(time_left)}",
+        f"#{index} {name} ({world})",
+        f"  {category_cn} ─ {duty}",
+        f"  {bar} {filled}/{available} │ {time_str}",
     ]
-    if tags:
-        lines.append(f"  {tags}")
+    if cross:
+        lines.append(f"  {cross}")
     if desc:
-        if len(desc) > 60:
-            desc = desc[:57] + "..."
-        lines.append(f"  {desc}")
-    lines.append(f"  ID: {listing_id}  |  {dc}")
+        if len(desc) > 50:
+            desc = desc[:47] + "..."
+        lines.append(f"  「{desc}」")
+    lines.append(f"  └ {dc} │ ID:{listing_id}")
     return "\n".join(lines)
 
 
@@ -99,53 +175,55 @@ def format_listing_detail(listing: dict) -> str:
     time_left = listing.get("time_left", 0)
     desc = listing.get("description", "").strip()
     listing_id = listing.get("id", 0)
-    cross = "是" if listing.get("is_cross_world") else "否"
-    welcome = "是" if listing.get("beginners_welcome") else "否"
+    cross = "⇔ 是" if listing.get("is_cross_world") else "否"
+    welcome = "✔" if listing.get("beginners_welcome") else "✘"
     min_il = listing.get("min_item_level", 0)
     duty_type = listing.get("duty_type", "")
     objective = listing.get("objective", "NONE")
     conditions = listing.get("conditions", "NONE")
     loot = listing.get("loot_rules", "NONE")
 
+    bar = _progress_bar(filled, available)
+
     lines = [
-        f"{name} 的招募",
-        "",
-        "【信息】",
-        f"副本: {duty}",
-        f"类别: {category_cn}",
-        f"类型: {duty_type}",
-        f"大区: {dc} / {world}",
-        f"属服: {home_world}",
-        f"跨服: {cross}",
-        f"新人欢迎: {welcome}",
-        f"最低装等: {min_il if min_il > 0 else '无要求'}",
-        "",
-        "【招募状态】",
-        f"已满: {filled}/{available} 人",
-        f"剩余时间: {format_time_left(time_left)}",
+        f"{'─' * 28}",
+        f"  {name}",
+        f"{'─' * 28}",
+        f"  {category_cn} │ {duty_type}",
+        f"  {duty}",
+        f"",
+        f"  {dc} / {world} ({home_world})",
+        f"  跨服: {cross} │ 新人: {welcome}",
+        f"  装等: {min_il if min_il > 0 else '无要求'}",
+        f"",
+        f"  {bar} {filled}/{available} │ {format_time_left(time_left)}",
     ]
 
     if objective and objective != "NONE":
-        lines.append(f"目标: {objective}")
+        lines.append(f"  目标: {objective}")
     if conditions and conditions != "NONE":
-        lines.append(f"条件: {conditions}")
+        lines.append(f"  条件: {conditions}")
     if loot and loot != "NONE":
-        lines.append(f"分配: {loot}")
+        lines.append(f"  分配: {loot}")
 
     slots = listing.get("slots", [])
     if slots:
         lines.append("")
-        lines.append("【队伍槽位】")
+        lines.append(f"{'─' * 28}")
+        lines.append("  队伍槽位")
+        lines.append(f"{'─' * 28}")
         for i, slot in enumerate(slots, 1):
             lines.append(f"  {i}. {format_slot(slot)}")
 
     if desc:
         lines.append("")
-        lines.append("【描述】")
-        lines.append(f"  {desc}")
+        lines.append(f"{'─' * 28}")
+        lines.append("  描述")
+        lines.append(f"{'─' * 28}")
+        lines.append(f"  「{desc}」")
 
     lines.append("")
-    lines.append(f"ID: {listing_id}")
+    lines.append(f"  ID: {listing_id}")
     return "\n".join(lines)
 
 
@@ -160,65 +238,93 @@ def format_listing_detail_image(listing: dict) -> str:
     available = listing.get("slots_available", 0)
     time_left = listing.get("time_left", 0)
     desc = listing.get("description", "").strip()
-    cross = "✔" if listing.get("is_cross_world") else "✘"
+    cross = "⇔" if listing.get("is_cross_world") else ""
     welcome = "✔" if listing.get("beginners_welcome") else "✘"
     min_il = listing.get("min_item_level", 0)
     duty_type = listing.get("duty_type", "")
+    listing_id = listing.get("id", 0)
+    time_str = format_time_left(time_left)
 
     slots = listing.get("slots", [])
-    slot_rows = ""
+    slot_html = ""
     for i, slot in enumerate(slots, 1):
-        if slot.get("filled"):
-            role = slot.get("role", "?")
-            job = slot.get("job", "?")
-            slot_rows += f'<tr class="filled"><td>{i}</td><td>{role}</td><td>{job}</td><td>✅</td></tr>\n'
+        filled_slot = slot.get("filled")
+        role = slot.get("role")
+        job_str = slot.get("job", "")
+        first_job = job_str.split()[0] if job_str else ""
+
+        role_color = ROLE_COLORS.get(role, "#888")
+        role_icon = ROLE_ICONS.get(role, "?")
+        role_cn = ROLE_CN.get(role, "任意")
+
+        if filled_slot and first_job:
+            job_icon_url = JOB_ICON_URLS.get(first_job, "")
+            job_img = f'<img src="{job_icon_url}" width="28" height="28" style="border-radius:4px;" />' if job_icon_url else f'<span style="font-size:11px;color:#aaa;">{first_job}</span>'
+            slot_html += f'''<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,255,255,0.05);border-radius:6px;border-left:3px solid {role_color};">
+  <span style="font-family:FFXIV,sans-serif;font-size:16px;">{role_icon}</span>
+  {job_img}
+  <span style="font-size:12px;color:#ccc;">{first_job}</span>
+  <span style="margin-left:auto;font-size:10px;color:{role_color};">●</span>
+</div>\n'''
         else:
-            role = slot.get("role") or "任意"
-            slot_rows += f'<tr class="empty"><td>{i}</td><td>{role}</td><td>-</td><td>❓</td></tr>\n'
+            slot_html += f'''<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid #555;opacity:0.7;">
+  <span style="font-family:FFXIV,sans-serif;font-size:16px;">{role_icon if role else "?"}</span>
+  <span style="font-size:12px;color:#888;">{role_cn if role else "任意"}</span>
+  <span style="margin-left:auto;font-size:10px;color:#555;">○</span>
+</div>\n'''
 
-    return f'''
-<div style="font-family: 'Microsoft YaHei', sans-serif; padding: 20px; width: 500px; background: #1a1a2e; color: #eee; border-radius: 12px;">
-  <h2 style="color: #e94560; margin: 0 0 8px 0;">{name}</h2>
-  <div style="color: #888; font-size: 13px; margin-bottom: 16px;">{category_cn} | {duty_type} | {dc} - {world}</div>
+    tags_html = ""
+    if cross:
+        tags_html += f'<span style="background:#2d4a7a;padding:2px 8px;border-radius:4px;font-size:11px;">{cross}</span>'
+    tags_html += f'<span style="background:#2d4a7a;padding:2px 8px;border-radius:4px;font-size:11px;">新人:{welcome}</span>'
+    if min_il > 0:
+        tags_html += f'<span style="background:#2d4a7a;padding:2px 8px;border-radius:4px;font-size:11px;">装等≥{min_il}</span>'
 
-  <div style="display: flex; gap: 16px; margin-bottom: 16px;">
-    <div style="flex:1; background: #16213e; padding: 12px; border-radius: 8px;">
-      <div style="font-size: 12px; color: #888;">副本</div>
-      <div style="font-size: 16px; font-weight: bold;">{duty}</div>
-    </div>
-    <div style="flex:1; background: #16213e; padding: 12px; border-radius: 8px;">
-      <div style="font-size: 12px; color: #888;">进度</div>
-      <div style="font-size: 16px; font-weight: bold;">{filled}/{available} 人</div>
-    </div>
-    <div style="flex:1; background: #16213e; padding: 12px; border-radius: 8px;">
-      <div style="font-size: 12px; color: #888;">剩余</div>
-      <div style="font-size: 16px; font-weight: bold;">{format_time_left(time_left)}</div>
-    </div>
+    desc_html = f'<div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.03);border-radius:6px;font-size:12px;color:#aaa;">「{desc}」</div>' if desc else ""
+
+    return f'''<div style="font-family:'Microsoft YaHei','Segoe UI',sans-serif;padding:0;width:480px;background:#0d1117;color:#e6edf3;border-radius:12px;overflow:hidden;">
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);padding:16px 20px;border-bottom:2px solid #3d85c6;">
+    <div style="font-size:18px;font-weight:bold;color:#fff;margin-bottom:4px;">{name}</div>
+    <div style="font-size:12px;color:#8b949e;">{category_cn} │ {duty_type} │ {dc} ─ {world}</div>
   </div>
 
-  <div style="display: flex; gap: 12px; margin-bottom: 16px; font-size: 13px;">
-    <span>跨服: {cross}</span>
-    <span>新人欢迎: {welcome}</span>
-    <span>装等要求: {min_il if min_il > 0 else "无"}</span>
+  <!-- Duty & Stats -->
+  <div style="padding:16px 20px;">
+    <div style="display:flex;gap:12px;margin-bottom:14px;">
+      <div style="flex:1;background:#161b22;padding:10px 12px;border-radius:8px;border:1px solid #30363d;">
+        <div style="font-size:10px;color:#8b949e;text-transform:uppercase;">副本</div>
+        <div style="font-size:15px;font-weight:600;color:#f0f6fc;margin-top:2px;">{duty}</div>
+      </div>
+      <div style="flex:0.6;background:#161b22;padding:10px 12px;border-radius:8px;border:1px solid #30363d;">
+        <div style="font-size:10px;color:#8b949e;text-transform:uppercase;">进度</div>
+        <div style="font-size:15px;font-weight:600;color:#f0f6fc;margin-top:2px;">{filled}/{available}</div>
+      </div>
+      <div style="flex:0.6;background:#161b22;padding:10px 12px;border-radius:8px;border:1px solid #30363d;">
+        <div style="font-size:10px;color:#8b949e;text-transform:uppercase;">剩余</div>
+        <div style="font-size:15px;font-weight:600;color:#f0f6fc;margin-top:2px;">{time_str}</div>
+      </div>
+    </div>
+
+    <!-- Tags -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+      {tags_html}
+    </div>
+
+    <!-- Slots -->
+    <div style="margin-bottom:4px;font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;">队伍槽位</div>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      {slot_html}
+    </div>
+
+    {desc_html}
   </div>
 
-  <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
-    <thead>
-      <tr style="background: #0f3460;">
-        <th style="padding: 8px; text-align: left;">#</th>
-        <th style="padding: 8px; text-align: left;">职能</th>
-        <th style="padding: 8px; text-align: left;">职业</th>
-        <th style="padding: 8px; text-align: left;">状态</th>
-      </tr>
-    </thead>
-    <tbody>
-      {slot_rows}
-    </tbody>
-  </table>
-
-  {"<div style='background: #16213e; padding: 12px; border-radius: 8px; font-size: 13px;'><b>描述:</b> " + desc + "</div>" if desc else ""}
-</div>
-'''
+  <!-- Footer -->
+  <div style="padding:8px 20px;background:#161b22;border-top:1px solid #30363d;font-size:10px;color:#484f58;text-align:right;">
+    ID: {listing_id} │ remote-party-finder
+  </div>
+</div>'''
 
 
 class XpfPlugin(Star):
