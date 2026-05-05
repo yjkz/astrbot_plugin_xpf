@@ -6,7 +6,7 @@
 
 AstrBot 插件 · 查询 FFXIV 集招募信息，支持按大区、副本、关键词筛选。
 
-![预览](README.jpg)
+![预览](images/README.jpg)
 
 ---
 
