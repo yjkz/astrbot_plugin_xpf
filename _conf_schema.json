@@ -1,0 +1,26 @@
+{
+  "api_base_url": {
+    "description": "API 地址",
+    "type": "string",
+    "default": "https://xivpf.littlenightmare.top/api",
+    "hint": "remote-party-finder 的 API 基础地址，不需要加 /listings 等路径"
+  },
+  "default_datacenter": {
+    "description": "默认大区",
+    "type": "string",
+    "default": "",
+    "hint": "不指定大区时使用此默认值。留空则查询全部大区。例如：豆豆柴、猫小胖、莫古力"
+  },
+  "default_per_page": {
+    "description": "每页显示数量",
+    "type": "int",
+    "default": 5,
+    "hint": "列表查询时每页显示的招募数量，最大 100"
+  },
+  "result_as_image": {
+    "description": "以图片形式发送结果",
+    "type": "bool",
+    "default": false,
+    "hint": "开启后查询结果将以图片形式发送，适合消息平台文本长度受限的场景"
+  }
+}
