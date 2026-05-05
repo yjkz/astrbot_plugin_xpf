@@ -93,6 +93,25 @@ ROLE_CN = {
     "DPS": "DPS",
 }
 
+# 职业中文映射
+JOB_CN = {
+    # 坦克
+    "GLA": "剑术师", "PLD": "骑士", "MRD": "斧术师", "WAR": "战士",
+    "DRK": "暗黑骑士", "GNB": "绝枪战士",
+    # 治疗
+    "CNJ": "幻术师", "WHM": "白魔法师", "SCH": "学者", "AST": "占星术士",
+    "SGE": "贤者",
+    # 近战 DPS
+    "PGL": "格斗家", "MNK": "武僧", "LNC": "枪术师", "DRG": "龙骑士",
+    "ROG": "双剑师", "NIN": "忍者", "SAM": "武士", "RPR": "钐镰客",
+    "VPR": "蝰蛇剑士",
+    # 远程物理 DPS
+    "ARC": "弓术师", "BRD": "吟游诗人", "MCH": "机工士", "DNC": "舞者",
+    # 魔法 DPS
+    "THM": "咒术师", "BLM": "黑魔法师", "ACN": "秘术师", "SMN": "召唤师",
+    "RDM": "赤魔法师", "BLU": "青魔法师", "PCT": "绘灵法师",
+}
+
 # 职业图标 CDN
 SDO_ICON_BASE = "https://img.nga.178.com/attachments/mon_202503"
 JOB_ICON_URLS = {
@@ -160,15 +179,18 @@ def _progress_bar(filled: int, total: int, width: int = 8) -> str:
 
 def format_slot(slot: dict) -> str:
     if slot.get("filled"):
-        job = slot.get("job", "?")
+        job_raw = slot.get("job", "?")
+        job_first = job_raw.split()[0] if job_raw else "?"
+        job_cn = JOB_CN.get(job_first, job_first)
         role = slot.get("role", "?")
-        icon = _role_icon(role)
-        return f"{icon}{job}"
+        role_cn = ROLE_CN.get(role, role)
+        return f"[{role_cn}] {job_cn}"
     else:
         role = slot.get("role")
         if role:
-            return f"{_role_icon(role)}待补"
-        return "？待补"
+            role_cn = ROLE_CN.get(role, role)
+            return f"[{role_cn}] 待补"
+        return "[任意] 待补"
 
 
 def format_listing_summary(listing: dict, index: int) -> str:
