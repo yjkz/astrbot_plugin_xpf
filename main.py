@@ -177,6 +177,55 @@ def _progress_bar(filled: int, total: int, width: int = 8) -> str:
     return "█" * filled_blocks + "░" * (width - filled_blocks)
 
 
+def format_listings_image(listings: list, header: str, footer: str) -> str:
+    items_html = ""
+    for i, l in enumerate(listings, 1):
+        name = l.get("name", "未知")
+        duty = l.get("duty", "无")
+        category = l.get("category", "None")
+        category_cn = CATEGORY_NAMES.get(category, category)
+        dc = l.get("datacenter", "?")
+        world = l.get("created_world", "?")
+        filled = l.get("slots_filled", 0)
+        available = l.get("slots_available", 0)
+        time_left = l.get("time_left", 0)
+        desc = l.get("description", "").strip()
+        listing_id = l.get("id", 0)
+        cross = "⇔" if l.get("is_cross_world") else ""
+
+        pct = int(filled / max(available, 1) * 100)
+        time_str = format_time_left(time_left)
+        if desc and len(desc) > 40:
+            desc = desc[:37] + "..."
+
+        cross_html = f'<span style="color:#58a6ff;font-size:11px;">{cross}</span>' if cross else ""
+
+        items_html += f'''<div style="padding:12px 16px;border-bottom:1px solid #21262d;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+    <span style="font-size:14px;font-weight:600;color:#f0f6fc;">#{i} {name}</span>
+    <span style="font-size:11px;color:#8b949e;">{world}</span>
+  </div>
+  <div style="font-size:12px;color:#8b949e;margin-bottom:6px;">{category_cn} ─ {duty}</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+    <div style="flex:1;height:6px;background:#21262d;border-radius:3px;overflow:hidden;">
+      <div style="width:{pct}%;height:100%;background:#3d85c6;border-radius:3px;"></div>
+    </div>
+    <span style="font-size:11px;color:#8b949e;white-space:nowrap;">{filled}/{available} │ {time_str}</span>
+    {cross_html}
+  </div>
+  {f'<div style="font-size:12px;color:#8b949e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">「{desc}」</div>' if desc else ''}
+  <div style="font-size:10px;color:#484f58;margin-top:4px;">{dc} │ ID:{listing_id}</div>
+</div>\n'''
+
+    return f'''<div style="font-family:'Microsoft YaHei','Segoe UI',sans-serif;width:480px;background:#0d1117;color:#e6edf3;border-radius:12px;overflow:hidden;">
+  <div style="background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);padding:14px 16px;border-bottom:2px solid #3d85c6;">
+    <div style="font-size:15px;font-weight:600;color:#fff;">{header}</div>
+  </div>
+  {items_html}
+  <div style="padding:10px 16px;text-align:center;font-size:11px;color:#484f58;border-top:1px solid #21262d;">{footer}</div>
+</div>'''
+
+
 def format_slot(slot: dict) -> str:
     if slot.get("filled"):
         job_raw = slot.get("job", "?")
@@ -322,21 +371,21 @@ def format_listing_detail_image(listing: dict) -> str:
         first_job = job_str.split()[0] if job_str else ""
 
         role_color = ROLE_COLORS.get(role, "#888")
-        role_icon = ROLE_ICONS_FFXIV.get(role, "?")
+        role_icon = ROLE_ICONS_TEXT.get(role, "?")
         role_cn = ROLE_CN.get(role, "任意")
 
         if filled_slot and first_job:
             job_icon_url = JOB_ICON_URLS.get(first_job, "")
             job_img = f'<img src="{job_icon_url}" width="28" height="28" style="border-radius:4px;" />' if job_icon_url else f'<span style="font-size:11px;color:#aaa;">{first_job}</span>'
             slot_html += f'''<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,255,255,0.05);border-radius:6px;border-left:3px solid {role_color};">
-  <span style="font-family:FFXIV,sans-serif;font-size:16px;">{role_icon}</span>
+  <span style="font-size:16px;">{role_icon}</span>
   {job_img}
-  <span style="font-size:12px;color:#ccc;">{first_job}</span>
+  <span style="font-size:12px;color:#ccc;">{JOB_CN.get(first_job, first_job)}</span>
   <span style="margin-left:auto;font-size:10px;color:{role_color};">●</span>
 </div>\n'''
         else:
             slot_html += f'''<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid #555;opacity:0.7;">
-  <span style="font-family:FFXIV,sans-serif;font-size:16px;">{role_icon if role else "?"}</span>
+  <span style="font-size:16px;">{role_icon}</span>
   <span style="font-size:12px;color:#888;">{role_cn if role else "任意"}</span>
   <span style="margin-left:auto;font-size:10px;color:#555;">○</span>
 </div>\n'''
@@ -481,7 +530,8 @@ class XpfPlugin(Star):
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
             if self.as_image:
-                yield event.image_result(await self.text_to_image(header + body + footer))
+                html = format_listings_image(listings, header, footer)
+                yield event.image_result(await self.html_render(html, {}))
             else:
                 yield event.plain_result(header + body + footer)
 
@@ -515,7 +565,8 @@ class XpfPlugin(Star):
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
             if self.as_image:
-                yield event.image_result(await self.text_to_image(header + body + footer))
+                html = format_listings_image(listings, header, footer)
+                yield event.image_result(await self.html_render(html, {}))
             else:
                 yield event.plain_result(header + body + footer)
 
@@ -551,7 +602,8 @@ class XpfPlugin(Star):
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
             if self.as_image:
-                yield event.image_result(await self.text_to_image(header + body + footer))
+                html = format_listings_image(listings, header, footer)
+                yield event.image_result(await self.html_render(html, {}))
             else:
                 yield event.plain_result(header + body + footer)
 
@@ -585,7 +637,8 @@ class XpfPlugin(Star):
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
             if self.as_image:
-                yield event.image_result(await self.text_to_image(header + body + footer))
+                html = format_listings_image(listings, header, footer)
+                yield event.image_result(await self.html_render(html, {}))
             else:
                 yield event.plain_result(header + body + footer)
 
@@ -627,7 +680,8 @@ class XpfPlugin(Star):
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
             if self.as_image:
-                yield event.image_result(await self.text_to_image(header + body + footer))
+                html = format_listings_image(listings, header, footer)
+                yield event.image_result(await self.html_render(html, {}))
             else:
                 yield event.plain_result(header + body + footer)
 
