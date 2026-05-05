@@ -2,7 +2,7 @@ name: astrbot_plugin_xpf
 display_name: XIV Party Finder
 short_desc: FFXIV 招募信息查询
 desc: 查询 remote-party-finder 上的 FFXIV 集招募信息，支持按大区、副本、关键词筛选，结果格式化展示。
-version: v1.1.0
+version: v1.2.0
 author: 夜艺
 repo: https://github.com/yjkz/astrbot_plugin_xpf
 astrbot_version: ">=4.16,<5"
