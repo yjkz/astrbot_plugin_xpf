@@ -1,5 +1,6 @@
 import aiohttp
-from astrbot.api.event import filter, AstrMessageEvent
+from astrbot.api.event import AstrMessageEvent
+from astrbot.api.event import filter as event_filter
 from astrbot.api.star import Context, Star
 from astrbot.api import logger, AstrBotConfig
 
@@ -250,7 +251,7 @@ class XpfPlugin(Star):
 
     # ── 指令组 ──
 
-    @filter.command_group("pf")
+    @event_filter.command_group("pf")
     def pf(self):
         '''FFXIV 集招募查询指令组'''
         pass
