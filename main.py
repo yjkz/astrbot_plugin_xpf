@@ -530,8 +530,12 @@ class XpfPlugin(Star):
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
             if self.as_image:
-                html = format_listings_image(listings, header, footer)
-                yield event.image_result(await self.html_render(html, {}))
+                try:
+                    html = format_listings_image(listings, header, footer)
+                    yield event.image_result(await self.html_render(html, {}))
+                except Exception as img_err:
+                    logger.warning(f"图片渲染失败，回退文本: {img_err}")
+                    yield event.plain_result(header + body + footer)
             else:
                 yield event.plain_result(header + body + footer)
 
@@ -565,8 +569,12 @@ class XpfPlugin(Star):
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
             if self.as_image:
-                html = format_listings_image(listings, header, footer)
-                yield event.image_result(await self.html_render(html, {}))
+                try:
+                    html = format_listings_image(listings, header, footer)
+                    yield event.image_result(await self.html_render(html, {}))
+                except Exception as img_err:
+                    logger.warning(f"图片渲染失败，回退文本: {img_err}")
+                    yield event.plain_result(header + body + footer)
             else:
                 yield event.plain_result(header + body + footer)
 
@@ -602,8 +610,12 @@ class XpfPlugin(Star):
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
             if self.as_image:
-                html = format_listings_image(listings, header, footer)
-                yield event.image_result(await self.html_render(html, {}))
+                try:
+                    html = format_listings_image(listings, header, footer)
+                    yield event.image_result(await self.html_render(html, {}))
+                except Exception as img_err:
+                    logger.warning(f"图片渲染失败，回退文本: {img_err}")
+                    yield event.plain_result(header + body + footer)
             else:
                 yield event.plain_result(header + body + footer)
 
@@ -637,8 +649,12 @@ class XpfPlugin(Star):
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
             if self.as_image:
-                html = format_listings_image(listings, header, footer)
-                yield event.image_result(await self.html_render(html, {}))
+                try:
+                    html = format_listings_image(listings, header, footer)
+                    yield event.image_result(await self.html_render(html, {}))
+                except Exception as img_err:
+                    logger.warning(f"图片渲染失败，回退文本: {img_err}")
+                    yield event.plain_result(header + body + footer)
             else:
                 yield event.plain_result(header + body + footer)
 
@@ -680,8 +696,12 @@ class XpfPlugin(Star):
             footer = f"\n---\n第 {pagination.get('page', 1)}/{pagination.get('total_pages', 1)} 页"
 
             if self.as_image:
-                html = format_listings_image(listings, header, footer)
-                yield event.image_result(await self.html_render(html, {}))
+                try:
+                    html = format_listings_image(listings, header, footer)
+                    yield event.image_result(await self.html_render(html, {}))
+                except Exception as img_err:
+                    logger.warning(f"图片渲染失败，回退文本: {img_err}")
+                    yield event.plain_result(header + body + footer)
             else:
                 yield event.plain_result(header + body + footer)
 
@@ -698,8 +718,12 @@ class XpfPlugin(Star):
             listing = await self._fetch_detail(listing_id)
 
             if self.as_image:
-                html = format_listing_detail_image(listing)
-                yield event.image_result(await self.html_render(html, {}))
+                try:
+                    html = format_listing_detail_image(listing)
+                    yield event.image_result(await self.html_render(html, {}))
+                except Exception as img_err:
+                    logger.warning(f"图片渲染失败，回退文本: {img_err}")
+                    yield event.plain_result(format_listing_detail(listing))
             else:
                 yield event.plain_result(format_listing_detail(listing))
 
