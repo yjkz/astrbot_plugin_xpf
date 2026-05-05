@@ -238,7 +238,7 @@ def format_listing_detail(listing: dict) -> str:
     time_left = listing.get("time_left", 0)
     desc = listing.get("description", "").strip()
     listing_id = listing.get("id", 0)
-    cross = "⇔" if listing.get("is_cross_world") else ""
+    cross = "⇔跨服" if listing.get("is_cross_world") else ""
     welcome = "✔" if listing.get("beginners_welcome") else "✘"
     min_il = listing.get("min_item_level", 0)
     duty_type_raw = listing.get("duty_type", "")
@@ -305,7 +305,7 @@ def format_listing_detail_image(listing: dict) -> str:
     available = listing.get("slots_available", 0)
     time_left = listing.get("time_left", 0)
     desc = listing.get("description", "").strip()
-    cross = "⇔" if listing.get("is_cross_world") else ""
+    cross = "⇔跨服" if listing.get("is_cross_world") else ""
     welcome = "✔" if listing.get("beginners_welcome") else "✘"
     min_il = listing.get("min_item_level", 0)
     duty_type_raw = listing.get("duty_type", "")
